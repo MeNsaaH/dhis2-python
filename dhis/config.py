@@ -20,9 +20,9 @@ class Config:
         else:
             location=None
         if location:
-            print('Location is '+location)
+            print('Loading config from '+os.path.realpath(location),end='\n',flush=True)
         else:
-            print('No location')
+            print('No configuration file',end='\n',flush=True)
         if location:
             if isurl:
                 loaded=json.loads(urlopen(location).read())
