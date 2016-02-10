@@ -52,81 +52,83 @@ class Server:
             self.__cookies = {"JSESSIONID": result.cookies["JSESSIONID"]}
         return result
 
-    def get(self, path, **kwargs):
-        return self.__out(requests.get(self.baseurl + path, **self.__sec(kwargs)))
+    wrapper_params=['return_type','content-type','content-length',
+                    'content-encoding','date','host','auth']
 
-    def put(self, path, **kwargs):
-        return self.__out(requests.put(self.baseurl + path, auth=self.credentials, **self.__sec(kwargs)))
-
-    def post(self, path, **kwargs):
-        return self.__out(requests.post(self.baseurl + path, auth=self.credentials, **self.__sec(kwargs)))
-
-    def patch(self, path, **kwargs):
-        return self.__out(requests.patch(self.baseurl + path, auth=self.credentials, **self.__sec(kwargs)))
-
-    def call(self,action,return_type=None, **kwargs):
-        info=self.endpoints.get(action)
-        if not info:
+    def call(self,endpoint,method=None,return_type=None,params={},headers={},**kwargs):
+        auth=self.credentials
+        nkwargs=self.__sec(headers)
+        baseurl=self.baseurl
+        if type(endpoint) is str:
             if action.endsWith('json') and not return_type:
                 use_return_type='json'
             elif not return_type:
                 use_return_type='request'
             else:
                 use_return_type=return_type
-            info={'name': action,'relpath': action,
-                  'method': 'get',
-                  'return_type': use_return_type,
-                  'params': None}
-        method=info.method
-        params={}
+            endpoint=Endpoint({'name': endpoint,'relpath': endpoint,
+                               'method': method,params: None,
+                               'return_type': use_return_type})
+        if not method and endpoint.method:
+            method=endpoint.method
+        elif not method:
+            method="GET"
+        path=baseurl+endpoint.relpath
         if not return_type:
-            return_type=info.return_type
-        if info.params:
-            for arg in info.params:
+            return_type=endpoint.return_type
+        if endpoint.params:
+            for arg in endpoint.params:
                 params[arg]=kwargs.get(arg)
         else:
             for item in kwargs.items():
-                params[item[0]]=item[1]
+                if item[0] not in Server.wrapper_params:
+                    params[item[0]]=item[1]
         if method == 'GET':
-            result=self.get(info.relpath,params=params)
+            result=requests.get(path,params=params,**nkwargs)
         elif method == 'PUT':
-            result=self.put(info.relpath,params=params)
+            result=requests.put(path,params=params,**nkwargs)
         elif method == 'POST':
-            result=self.put(info.relpath,params=params)
+            result=requests.post(path,params=params,**nkwargs)
         elif method == 'PATCH':
-            result=self.patch(info.relpath,params=params)
+            result=requests.patch(path,params=params,**nkwargs)
+        elif method == 'DELETE':
+            result=requests.delete(path,params=params,**nkwargs)
         else:
-            result=requests.get(inf.relpath,params=params)
+            result=requests.get(path,params=params,**nkwargs)
         result=self.__out(result)
         if return_type == 'request':
             return result
         elif result.status_code != 200:
             raise Exception('HTTP error',result)
-        elif not info.return_type:
+        elif not endpoint.return_type:
             return result
-        elif info.return_type == 'json':
+        elif endpoint.return_type == 'json':
             return result.json()
-        elif info.return_type == 'text':
+        elif endpoint.return_type == 'text':
             return result.text
         else:
             return result
 
-    def addEndpoint(self,definition):
-        if definition.get('name'):
-            key=definition.get('name')
-        elif definition.get('relpath'):
-            key=definition.get('relpath')
-        else:
-            raise Exception('No name for endpoint')
-        endpoint=Endpoint(definition,self)
-        self.endpoints[key]=endpoint
-        return endpoint
+    def get(self, path, **kwargs):
+        return self.call(path,"GET",**kwargs)
+
+    def put(self, path, **kwargs):
+        return self.call(path,"PUT",**kwargs)
+
+    def post(self, path, **kwargs):
+        return self.call(path,"POST",**kwargs)
+
+    def patch(self, path, **kwargs):
+        return self.call(path,"PATCH",**kwargs)
+
+    def delete(self, path, **kwargs):
+        return self.call(path,"DELETE",**kwargs)
 
     def clear_hibernate_cache(self):
         return self._out(requests.get(self.baseurl + "/dhis-web-maintenance-dataadmin/clearCache.action"))
 
 class Endpoint:
-    def __init__(self,info,server):
+    def __init__(self,info,server=None):
         self.name=None
         self.info=info
         self.server=server
