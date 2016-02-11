@@ -1,24 +1,16 @@
-import base64
 import requests
 
 class Server:
-    def __init__(self,baseurl=None,username=None,password=None):
-        self.baseurl=baseurl
-        self.username=username
-        self.password=password
-        self.credentials = (username, password)
+    def __init__(self,obj):
+        self.baseurl = obj['baseurl']
+        self.credentials = (obj['username'], obj['password'])
         self.__cookies = None
-
-    def get_auth_string(self):
-        return base64.encodestring('%s:%s' % (self.username, self.password)).replace('\n', '')
-
     def __sec(self, headers): #Add security, either username/password or cookie
         if  self.__cookies:
             headers["cookies"] = self.__cookies
         else:
             headers["auth"] = self.credentials
         return headers
-
     def __out(self, result): #First time: Grab seurity cookie for future calls
         if not self.__cookies :
             self.__cookies = {"JSESSIONID": result.cookies["JSESSIONID"]};
@@ -37,5 +29,5 @@ class Server:
         return self.__out(requests.patch(self.baseurl + path, auth=self.credentials, **self.__sec(kwargs)))
 
     def clear_hibernate_cache(self):
-        return self._out(requests.get(self.baseurl + "/dhis-web-maintenance-dataadmin/clearCache.action"))
+        return self._out(requests.get(self.baseurl + "/api/maintenance/cache"))
 

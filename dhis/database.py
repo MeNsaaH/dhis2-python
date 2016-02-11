@@ -2,38 +2,35 @@ import psycopg2
 
 
 class Database:
-    def __init__(self, host=None, port=None, username=None, password=None, dbname=None):
-        self.host = host
-        self.port = port
-        self.username = username
-        self.password = password
-        self.dbname = dbname
+    def __init__(self, dsn):
+        self.dsn = dsn
         try:
-            self.conn = psycopg2.connect(self.dsn())
+            self.conn = psycopg2.connect(dsn)
             self.cur = self.conn.cursor()
         except psycopg2.OperationalError as e:
             print('Could not get a database connection' + e)
         assert isinstance(self.conn, psycopg2.extensions.connection)
-        assert isinstance(self.cur,psycopg2.extensions.cursor)
+        assert isinstance(self.cur, psycopg2.extensions.cursor)
 
     def __del__(self):
         self.conn.close()
 
-    def dsn(self):
-        return "dbname=" + self.dbname + \
-               " host=" + self.host + \
-               " user=" + self.username + \
-               " password=" + self.password + \
-               " port=" + str(self.port)
-
-    def execute_sql(self,sql):
+    def execute(self,sql):
+        assert (sql, str)
         try:
-            for command in sql:
-                self.cur.execute(command)
-                self.conn.commit()
+            self.cur.execute(sql)
+            self.conn.commit()
         except psycopg2.Error as e:
             print e
             self.conn.rollback()
             return False
         else:
             return True
+
+    def fetchall(self,sql):
+        assert (sql, str)
+        try:
+            self.cur.execute(sql)
+            return self.cur.fetchall()
+        except psycopg2.Error as e:
+            print e

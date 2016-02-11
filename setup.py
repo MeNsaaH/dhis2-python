@@ -8,4 +8,5 @@ setup(name='dhis',
       author_email='post@dhis2.org',
       license='BSD',
       packages=['dhis'],
-      zip_safe=False)
+      zip_safe=False,
+      install_requires=['requests','sqlparse','psycopg2'])
