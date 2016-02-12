@@ -1,0 +1,12 @@
+{ "api": "datim",
+  "datim":
+  { "baseurl": "http://localhost:8020/datim220a/",
+    "username": "apitest",
+    "password": "In5ecure" 
+  },
+  "db":
+  { "dbname": "demo",
+    "username": "admin",
+    "password": "district"}
+  
+}
