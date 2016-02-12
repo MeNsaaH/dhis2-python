@@ -21,9 +21,8 @@ class Database:
             self.cur.execute(sql)
             self.conn.commit()
         except psycopg2.Error as e:
-            print e
             self.conn.rollback()
-            return False
+            return e
         else:
             return True
 
@@ -33,4 +32,4 @@ class Database:
             self.cur.execute(sql)
             return self.cur.fetchall()
         except psycopg2.Error as e:
-            print e
+            return e
