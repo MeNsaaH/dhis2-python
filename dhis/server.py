@@ -1,5 +1,6 @@
 import base64, requests
 from dhis.config import Config
+from dhis.endpoint import Endpoint
 from urllib.parse import urlparse, urlunparse
 
 
@@ -18,7 +19,7 @@ class Server:
         if baseurl.endswith('/api/'):
             baseurl = baseurl
         elif baseurl.endswith('/'):
-            baseurl = baseurl + 'api/'
+            baseurl += 'api/'
         else:
             baseurl = baseurl + '/api/'
         if not username:
@@ -127,29 +128,3 @@ class Server:
 
     def clear_hibernate_cache(self):
         return self._out(requests.get(self.baseurl + "/dhis-web-maintenance-dataadmin/clearCache.action"))
-
-
-class Endpoint:
-    def __init__(self, info, server=None):
-        self.name = None
-        self.info = info
-        self.server = server
-        self.method = "GET"
-        self.params = None
-        self.return_type = None
-        for item in info.items():
-            setattr(self, item[0], item[1])
-        if not self.return_type and self.relpath and self.relpath.endswith('json'):
-            self.return_type = 'json'
-
-    def __repr__(self):
-        if self.name:
-            return '<Endpoint %s>' % self.name
-        else:
-            return '<Endpoint ' + str(self.info) + '>'
-
-    def __str__(self):
-        if self.name:
-            return '<Endpoint %s>' % self.name
-        else:
-            return '<Endpoint ' + str(self.info) + '>'
