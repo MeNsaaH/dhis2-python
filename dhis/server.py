@@ -1,14 +1,13 @@
 import base64, requests
-from dhis.config import Config
+
 from dhis.endpoint import Endpoint
 from urllib.parse import urlparse, urlunparse
 
 
 class Server:
     def __init__(self, baseurl=None, config=None, username=None, password=None, profile=None):
-        config = Config(config, profile=profile)
         if not baseurl:
-            baseurl = config.getconfig("api").baseurl
+            baseurl = config.getconfig("dhis").baseurl
         if not baseurl:
             raise Exception('Server requires baseurl')
         elif type(baseurl) is not str:
@@ -62,14 +61,14 @@ class Server:
         nkwargs = self.__sec(headers)
         baseurl = self.baseurl
         if type(endpoint) is str:
-            if action.endsWith('json') and not return_type:
+            if endpoint.endswith('json') and not return_type:
                 use_return_type = 'json'
             elif not return_type:
                 use_return_type = 'request'
             else:
                 use_return_type = return_type
             endpoint = Endpoint({'name': endpoint, 'relpath': endpoint,
-                                 'method': method, params: None,
+                                 'method': method,
                                  'return_type': use_return_type})
         if not method and endpoint.method:
             method = endpoint.method
@@ -127,4 +126,4 @@ class Server:
         return self.call(path, "DELETE", **kwargs)
 
     def clear_hibernate_cache(self):
-        return self._out(requests.get(self.baseurl + "/dhis-web-maintenance-dataadmin/clearCache.action"))
+        return self._out(requests.get(self.baseurl + "/maintenance/cache"))

@@ -5,19 +5,18 @@ class Configuration:
         self.username = ''
         self.password = ''
         if configdata.get('baseurl'):
-            self.kind = 'API'
+            self.kind = 'dhis'
         elif configdata.get('dbname'):
-            self.kind = 'Database'
+            self.kind = 'database'
         else:
             self.kind = None
-        if self.kind == "Database":
+        if self.kind == "database":
             self.port = None
             self.hostname = 'localhost'
-        if self.kind == 'API':
+        if self.kind == 'dhis':
             self.baseurl = None
         for item in configdata.items():
             setattr(self, item[0], item[1])
-
     def __repr__(self):
         if self.kind and self.name:
             return '<%s configuration %s>' % (self.kind, self.name)
@@ -31,7 +30,6 @@ class Configuration:
             return '<%s configuration %s>' % (self.kind, str(self.configdata))
         else:
             return '<Configuration ' + str(self.configdata) + '>'
-
     def __str__(self):
         if self.kind:
             return '<%s configuration %s>' % (self.kind, str(self.configdata))
