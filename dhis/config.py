@@ -5,6 +5,8 @@ from dhis.configuration import Configuration
 
 class Config:
     def __init__(self, location=None, profile=None):
+        abspath=os.path.abspath("dhis2conf.json")
+        homepath=os.path.abspath(os.path.expanduser("~/.dhis2conf.json"))
         self.config = None
         self.type = None
         self.profile = profile
@@ -12,19 +14,21 @@ class Config:
             if urlparse(location).scheme:
                 self.type = 'url'
             else:
-                if (os.path.isfile(location)) and os.access(location, os.R_OK):
+                fullpath=os.path.abspath(location)
+                if (os.path.isfile(fullpath)) and os.access(fullpath, os.R_OK):
                     self.type = 'file'
                 else:
-                    raise Exception('Config could not be read.', end='\n', flush=True)
-        elif ((os.path.isfile("dhis2conf.json")) and os.access("dhis2conf.json", os.R_OK)):
-            location = "dhis2conf.json"
+                    raise Exception('Config could not be read.')
+        elif ((os.path.isfile(abspath)) and os.access(abspath, os.R_OK)):
+            location = abspath
             self.type = 'file'
-        elif (os.path.isfile("~/.dhis2conf.json")) and os.access("~/.dhis2conf.json", os.R_OK):
-            location = "~/.dhis2conf.json"
+        elif (os.path.isfile(homepath)) and os.access(homepath, os.R_OK):
+            location = homepath
             self.type = 'file'
         else:
             self.type = 'sysenv'
-        print('Loading config from ' + location, end='\n', flush=True)
+        if location:
+            print('Loading '+self.type+'config from ' + location, end='\n', flush=True)
         if self.type:
             if self.type == 'url':
                 loaded = json.loads(urlopen(location).read())
@@ -42,7 +46,7 @@ class Config:
                 apiconfig['username'] = os.getenv("DHIS2API_USER")
                 apiconfig['password'] = os.getenv("DHIS2API_PASSWORD")
                 loaded = {'database': Configuration(dbconfig),
-                      'dhis': Configuration(apiconfig)}
+                          'dhis': Configuration(apiconfig)}
         if loaded.get('database') or loaded.get('dhis'):
             for item in loaded.items():
                 if type(item[1]) is not str:
