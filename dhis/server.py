@@ -1,11 +1,17 @@
 import base64, requests
 
+from dhis.config import Config
 from dhis.endpoint import Endpoint
 from urllib.parse import urlparse, urlunparse
 
-
 class Server:
-    def __init__(self, baseurl=None, config=None, username=None, password=None, profile=None):
+    def __init__(self, config=None, baseurl=None, username=None, password=None, profile=None):
+        if not config:
+            config=Config()
+        elif type(config) is not Config: 
+            config=Config(config)
+        else:
+            config=config
         if not baseurl:
             baseurl = config.getconfig("dhis").baseurl
         if not baseurl:
