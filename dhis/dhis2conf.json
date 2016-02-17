@@ -1,6 +1,5 @@
-{ "api": "datim",
-  "datim":
-  { "baseurl": "http://localhost:8020/datim220a/",
+{ "dhis":
+  { "baseurl": "http://localhost:8080/datim/",
     "username": "apitest",
     "password": "In5ecure" 
   },
