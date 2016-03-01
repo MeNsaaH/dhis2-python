@@ -1,0 +1,12 @@
+{ "dhis":
+  { "baseurl": "http://localhost:8087/datim221x/",
+    "username": "apitest",
+    "password": "In5ecure" 
+  },
+  "database":
+  { "host": "localhost",
+    "dbname": "datim221x",
+    "port": 5432,
+    "username": "dhis",
+    "password": "dhis"}
+}
