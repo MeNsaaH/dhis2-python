@@ -1,11 +1,16 @@
-import base64, requests
+import base64, requests, json
 
 from dhis.config import Config
 from dhis.endpoint import Endpoint
+from dhis.types import Generic
 from urllib.parse import urlparse, urlunparse
 
 class Server:
-    def __init__(self, config=None, baseurl=None, username=None, password=None, profile=None):
+    def __init__(self, config=None, 
+                 baseurl=None, 
+                 username=None, 
+                 password=None,
+                 profile=None):
         if not config:
             config=Config()
         elif type(config) is not Config: 
@@ -42,30 +47,37 @@ class Server:
         self.password = password
         self.credentials = (username, password)
         self.endpoints = {}
+        self.config = config
         self.__cookies = None
 
     def get_auth_string(self):
         return base64.encodebytes('%s:%s' % (self.username, self.password)).replace('\n', '')
 
-    def __sec(self, headers):  # Add security, either username/password or cookie
+    def __sec(self,kwargs,headers):  # Add security, either username/password or cookie
         if self.__cookies:
-            headers["cookies"] = self.__cookies
+            kwargs["cookies"] = self.__cookies
         else:
-            headers["auth"] = self.credentials
+            kwargs["auth"] = self.credentials
         return headers
 
     def __out(self, result):  # First time: Grab security cookie for future calls
         if not self.__cookies and result.cookies and result.cookies["JSESSIONID"]:
+            # print("saving JSESSIONID "+result.cookies["JSESSIONID"]+"on "+self+"\n")
             self.__cookies = {"JSESSIONID": result.cookies["JSESSIONID"]}
         return result
 
-    wrapper_params = ['return_type', 'content-type', 'content-length',
-                      'content-encoding', 'date', 'host', 'auth']
+    wrapper_params = ['return_type', 'content-type', 'content-length','headers',
+                      'content-encoding', 'date', 'host', 'auth','return_class']
 
-    def call(self, endpoint, method=None, return_type=None, params={}, headers={}, **kwargs):
+    def call(self, endpoint, method=None, 
+             return_type=None, return_class=None, 
+             jsondata=None, params={}, headers={},
+             **kwargs):
         auth = self.credentials
-        nkwargs = self.__sec(headers)
-        baseurl = self.baseurl
+        headers = self.__sec(kwargs,headers)
+        if not 'headers' in kwargs:
+            kwargs['headers']=headers
+        baseurl= self.baseurl
         if type(endpoint) is str:
             if endpoint.endswith('json') and not return_type:
                 use_return_type = 'json'
@@ -75,14 +87,16 @@ class Server:
                 use_return_type = return_type
             endpoint = Endpoint({'name': endpoint, 'relpath': endpoint,
                                  'method': method,
-                                 'return_type': use_return_type})
+                                 'return_type': use_return_type,
+                                 'return_class': return_class})
         if not method and endpoint.method:
             method = endpoint.method
         elif not method:
             method = "GET"
         path = baseurl + endpoint.relpath
         if not return_type:
-            return_type = endpoint.return_type
+            if endpoint.return_type:
+                return_type = endpoint.return_type
         if endpoint.params:
             for arg in endpoint.params:
                 params[arg] = kwargs.get(arg)
@@ -90,18 +104,31 @@ class Server:
             for item in kwargs.items():
                 if item[0] not in Server.wrapper_params:
                     params[item[0]] = item[1]
+        if return_type in ['collection']:
+            params['paging']=False
+
+        if return_type in ['collection','object','json']:
+            if not path.endswith('.json'):
+                path=path+'.json'
+
+        if jsondata:
+            kwargs['data']=json.dumps(jsondata)
+            headers['content-type']='application/json'
+
+        # print('headers='+str(headers))
+
         if method == 'GET':
-            result = requests.get(path, params=params, **nkwargs)
+            result = requests.get(path, params=params, **kwargs)
         elif method == 'PUT':
-            result = requests.put(path, params=params, **nkwargs)
+            result = requests.put(path, params=params, **kwargs)
         elif method == 'POST':
-            result = requests.post(path, params=params, **nkwargs)
+            result = requests.post(path, params=params, **kwargs)
         elif method == 'PATCH':
-            result = requests.patch(path, params=params, **nkwargs)
+            result = requests.patch(path, params=params, **kwargs)
         elif method == 'DELETE':
-            result = requests.delete(path, params=params, **nkwargs)
+            result = requests.delete(path, params=params, **kwargs)
         else:
-            result = requests.get(path, params=params, **nkwargs)
+            result = requests.get(path, params=params, **kwargs)
         result = self.__out(result)
         if return_type == 'request':
             return result
@@ -111,10 +138,34 @@ class Server:
             return result
         elif endpoint.return_type == 'json':
             return result.json()
+        elif endpoint.return_type == 'object':
+            asjson=result.json()
+            constructor=endpoint.return_class
+            if not constructor:
+                return Generic(asjson)
+            else:
+                return constructor(asjson)
+        elif endpoint.return_type == 'collection':
+            return self.getall(result.json())
+        elif endpoint.return_type == 'objects':
+            constructor=endpoint.return_class
+            if not constructor:
+                constructor=Generic
+            exports=self.getall(result.json())
+            objects=[]
+            for item in exports:
+                obj=constructor(item)
+                objects.append(obj)
+            return objects
         elif endpoint.return_type == 'text':
             return result.text
         else:
             return result
+
+    def getall(self,json):
+        for key, value in json.items():
+            if key != 'pager':
+                return value
 
     def get(self, path, **kwargs):
         return self.call(path, "GET", **kwargs)
@@ -133,3 +184,5 @@ class Server:
 
     def clear_hibernate_cache(self):
         return self._out(requests.get(self.baseurl + "/maintenance/cache"))
+
+
