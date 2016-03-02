@@ -128,7 +128,8 @@ def new_validation_rule(data_element,numerator,disaggregation):
          "instruction":
          ("The "+numerator.shortName+" numerator must equal or exceed the disaggregation by "+disaggregation+"."),
          "ruletype": "VALIDATION",
-         "periodType": "Quarterly",
+         "importance": "MEDIUM",
+         "periodType": "FinancialOct",
          "operator": "greater_than_or_equal_to",
          "rightSide": right_expression,
          "leftSide": left_expression})
