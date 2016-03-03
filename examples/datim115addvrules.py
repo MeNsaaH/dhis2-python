@@ -1,7 +1,10 @@
-import os
+import os, json
 from dhis.config import Config
 from dhis.server import Server
 from dhis.types import Generic
+
+# Start with psql cleanup:
+# update validationrule set name=regexp_replace(TRIM(name),E'\\s+',' ','g');
 
 #api=Server()
 api=Server()
@@ -85,6 +88,8 @@ def get_catoptioncombos(elt):
     return list(map(catoptioncombo,elt.get('categoryOptionCombos')))
 
 def make_validation_rules(elt):
+    if not elt:
+        return
     name=elt.name
     left=name.index('(')
     right=name.index(')')
@@ -93,11 +98,12 @@ def make_validation_rules(elt):
     rules=[]
     if len(args) > 2:
         numerator_name=name[0:left+1]+args[0]+","+args[1]+name[right:]
-        print('numerator name='+numerator_name)
         numerator=get_dataelement_byname(numerator_name)
         if not numerator:
-            print("Can't find data element numerator "+numerator_name+" for data element "+name+" ("+elt.id+")")
+            print("Can't find data element numerator "+numerator_name+" for data element "+name+" ("+elt.id+")\n")
         else:
+            print('Creating validation rules for '+name+' ('+elt.id+')\n'+
+                  '\twith numerator '+numerator_name+' ('+numerator.id+')')
             rule=new_validation_rule(elt,numerator,args[2].strip().replace( '/', ' and ' ))
             rules.append(rule)
     return rules
@@ -105,13 +111,15 @@ def make_validation_rules(elt):
 def new_validation_rule(data_element,numerator,disaggregation):
     numerator_category=catcombo(numerator.categoryCombo)
     numerator_option_combos=get_catoptioncombos(numerator_category)
-    left_expr="#{"+numerator.id+"."+numerator_option_combos[0].id
+    left_expr="#{"+numerator.id+"."+numerator_option_combos[0].id+"}"
     data_category=catcombo(data_element.categoryCombo)
     data_option_combos=get_catoptioncombos(data_category)
     right_expr=""
+    print('Rule requires that aggregate '+numerator.name+' ('+numerator.id+') >= sum of: ')
     for option in data_option_combos:
         if len(right_expr)>0:
             right_expr=right_expr+" + "
+        print('\t'+option.name+" #{"+data_element.id+"."+option.id+"}")
         right_expr = right_expr+"#{"+data_element.id+"."+option.id+"}"
     left_expression={'description': numerator.shortName,
                      'missingValueStrategy': 'NEVER_SKIP',
@@ -120,7 +128,6 @@ def new_validation_rule(data_element,numerator,disaggregation):
                      'missingValueStrategy': 'NEVER_SKIP',
                      'expression': right_expr}
     new_name=(data_element.name+" - vs. total")
-    print('Making new validation rule '+new_name)
     return cons_validation_rule(
         {"name": new_name,
          "description":
@@ -135,16 +142,24 @@ def new_validation_rule(data_element,numerator,disaggregation):
          "leftSide": left_expression})
 
 def cons_validation_rule(template):
-    return api.post('validationRules',jsondata=template,return_type='request')
+    print('MAKING NEW validation rule '+template['name'])
+    result=api.post('validationRules',jsondata=template,return_type='object')
+    if 'importConflicts' in result.response:
+        print('\tFailed with import conflicts: '+json.dumps(result.response['importConflicts']))
+    else:
+        print('\tValidation rule created as '+result.response['lastImported'])
 
 def main():
     local_config=os.path.abspath("dhis2conf.json")
     if not os.path.isfile(local_config):
         print("Warning: The credentials file "+local_config+" doesn't seem to exist, so this might not work.")
+    print('Getting elements to process')
     todo=get_dataelements()
+    print('Processing '+str(len(todo))+' elements')
     for elt in todo:
         make_validation_rules(elt)
 
 if __name__ == "__main__":
     main()
 
+# Compare using OVC_ACC (N,DSD) TARGET
