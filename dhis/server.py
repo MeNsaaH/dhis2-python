@@ -2,7 +2,7 @@ import base64, requests, json
 
 from dhis.config import Config
 from dhis.endpoint import Endpoint
-from dhis.types import Generic
+from dhis.types.types import Generic
 from urllib.parse import urlparse, urlunparse
 
 class Server:
