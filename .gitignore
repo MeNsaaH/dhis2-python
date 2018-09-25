@@ -1,0 +1,80 @@
+/core
+/data
+/src
+error.log
+load_script.logs
+load_script.pid
+local_settings.py
+pyxform
+search_index
+tmp/*
+xform_manager_dataset.json
+
+# folder to hold csv files
+csvs
+
+# pip build dir
+build
+
+# media folder used by tests
+# TODO figure out a way to clean this up rather than ignore it.
+/onadata/test_media
+/onadata/media
+/onadata/static
+
+.~lock.*
+.DS_Store
+.idea
+.odk
+*.iml
+.project
+.pydevproject
+.sass-cache
+
+*.bak
+*.gz
+*.pyc
+*.sql
+*.sqlite3
+*~
+*orig
+celerybeat-schedule
+celerybeat.pid
+*.swp
+.venv
+.virtualenv
+*.ropeproject
+.noseids
+
+gunicorn_cfg.py
+run_gunicorn.sh
+/static
+celerybeat-schedule
+
+# bower
+/onadata/apps/main/static/bower_components
+custom_template
+/node_modules
+
+# ignore vagrant folder and files
+.vagrant
+Vagrantfile
+ansible
+
+# compile documentation
+docs/_build
+dev_https
+stunnel.pem
+
+# profiling temp files
+profile
+bob
+*.db
+*.egg-info
+
+# visual studio code
+.vscode/
+tags
+
+.bash_history
+.inputrc
