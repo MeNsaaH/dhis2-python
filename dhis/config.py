@@ -1,7 +1,11 @@
-import json, os, urllib
+import json
+import os
+import urllib
 from urllib.parse import urlparse
 from urllib.request import urlopen
+
 from dhis.configuration import Configuration
+
 
 class Config:
     def __init__(self, location=None, profile=None):
@@ -45,12 +49,15 @@ class Config:
                 apiconfig['baseurl'] = os.getenv("DHIS2API_ROOT")
                 apiconfig['username'] = os.getenv("DHIS2API_USER")
                 apiconfig['password'] = os.getenv("DHIS2API_PASSWORD")
+                if all(value is None for value in dbconfig.values()) and \
+                     all(value is None for value in apiconfig.values()):
+                    raise Exception('No URL or File or Environmental Variable specified for Config')
                 loaded = {'database': Configuration(dbconfig),
                           'dhis': Configuration(apiconfig)}
         if loaded.get('database') or loaded.get('dhis'):
             for item in loaded.items():
                 if type(item[1]) is not str:
-                    loaded[item[0]] = Configuration(item[1])
+                    loaded[item[0]] = Configuration.conf(item[1])
                     self.config = loaded
                 elif loaded.get('dbname'):
                     self.config = {'database': Configuration(loaded['database'])}

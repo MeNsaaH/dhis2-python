@@ -4,19 +4,22 @@ class Configuration:
         self.configdata = configdata
         self.username = ''
         self.password = ''
-        if configdata.get('baseurl'):
-            self.kind = 'dhis'
-        elif configdata.get('dbname'):
-            self.kind = 'database'
-        else:
-            self.kind = None
-        if self.kind == "database":
-            self.port = None
-            self.hostname = 'localhost'
-        if self.kind == 'dhis':
-            self.baseurl = None
-        for item in configdata.items():
-            setattr(self, item[0], item[1])
+        # if configdata is not already a configuration
+        if not isinstance(configdata, self.__class__):
+            if configdata.get('baseurl'):
+                self.kind = 'dhis'
+            elif configdata.get('dbname'):
+                self.kind = 'database'
+            else:
+                self.kind = None
+            if self.kind == "database":
+                self.port = None
+                self.hostname = 'localhost'
+            if self.kind == 'dhis':
+                self.baseurl = None
+            for item in configdata.items():
+                setattr(self, item[0], item[1])
+
     def __repr__(self):
         if self.kind and self.name:
             return '<%s configuration %s>' % (self.kind, self.name)
@@ -30,8 +33,16 @@ class Configuration:
             return '<%s configuration %s>' % (self.kind, str(self.configdata))
         else:
             return '<Configuration ' + str(self.configdata) + '>'
+
     def __str__(self):
         if self.kind:
             return '<%s configuration %s>' % (self.kind, str(self.configdata))
         else:
             return '<Configuration %s>' % str(self.configdata)
+
+    @classmethod
+    def conf(cls, config):
+        """ Returns a configuration """
+        if isinstance(config, cls):
+            return config
+        return cls(config)
