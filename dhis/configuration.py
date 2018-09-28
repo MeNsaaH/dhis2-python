@@ -1,3 +1,6 @@
+class ConfigurationInputError(Exception):
+    pass
+
 class Configuration:
     def __init__(self, configdata):
         self.name = None
@@ -19,6 +22,8 @@ class Configuration:
                 self.baseurl = None
             for item in configdata.items():
                 setattr(self, item[0], item[1])
+        else:
+            raise ConfigurationInputError('%s is already an instance of Configuration')
 
     def __repr__(self):
         if self.kind and self.name:

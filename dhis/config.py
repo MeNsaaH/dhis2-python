@@ -4,7 +4,7 @@ import urllib
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
-from dhis.configuration import Configuration
+from dhis.configuration import Configuration, ConfigurationInputError
 
 
 class Config:
@@ -57,7 +57,10 @@ class Config:
         if loaded.get('database') or loaded.get('dhis'):
             for item in loaded.items():
                 if type(item[1]) is not str:
-                    loaded[item[0]] = Configuration.conf(item[1])
+                    try:
+                        loaded[item[0]] = Configuration(item[1])
+                    except ConfigurationInputError:
+                        pass
                     self.config = loaded
                 elif loaded.get('dbname'):
                     self.config = {'database': Configuration(loaded['database'])}
